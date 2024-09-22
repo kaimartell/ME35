@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kai & Noah Lighthouse Control Room</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.8.2/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.8.2/core.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Lighthouse Nightlight Control</h1>
+        <p id='mqtt_connected' class="status">Initializing...</p>
+        
+        <!--
+        <div class="control-section">
+            <label for="info">Message to Pico:</label>
+            <textarea id="info" rows="3" placeholder="Enter Here"></textarea>
+            <button id="send_pico" class="button primary-btn">Send</button>
+        </div>
+        -->
+
+        <div class="button-group">
+            <button id="on_button" class="button primary-btn">Turn Light On</button>
+            <button id="off_button" class="button secondary-btn">Turn Light Off</button>
+            <button id="sync_button" class="button sync-btn">Sync: Off</button>
+        </div>
+
+        <div class="topic-section">
+            <label for="s_topic">Latest Lighthouse Message:</label>
+        </div>
+
+
+        <div id="answer" class="answer-box">None</div>
+    </div>
+
+    <script type="mpy-editor" src="./main.py" config="./pyscript.toml" env="ble" setup></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</body>
+</html>

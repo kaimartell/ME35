@@ -1,0 +1,6 @@
+name = "Nightlight Control"
+
+[files]
+
+[js_modules.main]
+"https://chrisrogers.pyscriptapps.com/cbr-libraries/latest/core/mqtt_library.js" = "mqtt_library"

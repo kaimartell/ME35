@@ -1,0 +1,133 @@
+/* General styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #87ceeb; /* Sky blue */
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    background-image: url('https://images.photowall.com/products/60917/rough-sea-waves.jpg?h=699&q=85'); /* Ocean waves background */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* Container */
+.container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.9); /* Slight transparency */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    text-align: center;
+    backdrop-filter: blur(10px); /* Smooth frosted glass effect */
+    box-sizing: border-box;
+}
+
+/* Headings */
+h1 {
+    color: #2c3e50; /* Dark ocean blue */
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+}
+
+/* Status message */
+.status {
+    color: #f39c12; /* Lighthouse warning light (gold) */
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+/* Control section */
+.control-section {
+    margin-bottom: 20px;
+}
+
+textarea {
+    width: calc(100% - 24px);
+    padding: 12px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    resize: none;
+    box-sizing: border-box;
+}
+
+
+/* Button styles */
+.button {
+    padding: 12px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.primary-btn {
+    background-color: #3498db; /* Ocean blue */
+    color: white;
+}
+
+.primary-btn:hover {
+    background-color: #2980b9;
+}
+
+.secondary-btn {
+    background-color: #e74c3c; /* Lighthouse red */
+    color: white;
+}
+
+.secondary-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Answer box */
+.answer-box {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f7d794; /* Warm lighthouse glow */
+    border: 1px solid #e1b12c;
+    border-radius: 6px;
+    color: #2c3e50;
+}
+
+/* Responsive layout */
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+
+    .button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+/* Topic section */
+.topic-section {
+    margin-bottom: 20px;
+}
+
+/* Style for the static message */
+.topic-section p {
+    padding: 12px;
+    background-color: #ecf0f1; /* Light grey background for the message */
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #2c3e50; /* Dark ocean blue for text */
+}
+
+/* Sync button styles */
+.sync-btn {
+    background-color: #f39c12; /* Orange color */
+    color: white;
+}
+
+.sync-btn:hover {
+    background-color: #e67e22;
+}
