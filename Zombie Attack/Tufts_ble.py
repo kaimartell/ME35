@@ -67,6 +67,7 @@ class Yell:
         self._ble.active(True)
         
     def advertise(self, name = 'Pico', interval_us=100000):
+        print("Advertising")
         short = name[:8]
         payload = struct.pack("BB", len(short) + 1, NAME_FLAG) + name[:8]  # byte length, byte type, value
         self._ble.gap_advertise(interval_us, adv_data=payload)
