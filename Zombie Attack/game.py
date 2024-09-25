@@ -7,20 +7,20 @@ class Game:
     def __init__(self):
         self.zombie_count = [0] * 13
         self.discriminator = '!'
-        self.id = 13
+        self.id = 13 #group number 13
         self.ble_read = []
-        self.threshold = -60
-        self.role = "Human"
+        self.threshold = -100 #set threshold on class
+        self.role = "Human" #defines start of program
         self.buzzer = machine.PWM(machine.Pin('GPIO18', machine.Pin.OUT))
-        self.buzzer.freq(440)
+        self.buzzer.freq(440) 
         self.buzzer.duty_u16(0)
-        self.led1 = machine.Pin('GPIO6', machine.Pin.OUT)
-        self.led2 = machine.Pin('GPIO7', machine.Pin.OUT)
+        self.led1 = machine.Pin('GPIO6', machine.Pin.OUT) #red led
+        self.led2 = machine.Pin('GPIO7', machine.Pin.OUT) #green led
 
     def play(self):
         if self.role == "Zombie":
             asyncio.run(self.eat_brainz())
-        elif self.role == "Human":
+        elif self.role == "Human": 
             asyncio.run(self.hide())
 
     async def eat_brainz(self):
@@ -31,18 +31,16 @@ class Game:
         
         while True:
             p.advertise(f'{self.discriminator}{self.id}')
-            print(f'advertised {self.id}')
             await asyncio.sleep(0.1) 
 
     async def hide(self):
         c = Sniff(self.discriminator, verbose=True)
         c.scan(0)
-        self.led2.value(1) 
+        self.led2.value(1) #green light on
         while True:
             self.clear_time()
             self.clear_distance()
             self.add_counter()
-            print("zombie_count: ", self.zombie_count)
             if self.check_count():
                 await self.eat_brainz()
                 break
@@ -58,22 +56,23 @@ class Game:
             print(f"Error: Could not convert {latest[1:]} to an integer")
             return
 
-        print("ble_read: ", self.ble_read)
         if id != self.id:
             self.ble_read.append((id, distance, time.time()))
 
     def clear_time(self):
         if not self.ble_read:
             return
+        
+        #remove entries older than 5 seconds
         current_time = time.time()
         first_entry = self.ble_read[0][2]
-
+        
         if isinstance(self.ble_read[0], (list, tuple)) and len(self.ble_read[0]) > 2:
             if current_time - first_entry > 5:
                 print("Removing entry older than 5 seconds.")
                 removed_entry = self.ble_read.pop(0)
                 print(f"Removed entry with ID {removed_entry[0]}")
-
+                
         else:
             print("Unexpected structure in self.ble_read[0]")
 
@@ -81,13 +80,10 @@ class Game:
         if not self.ble_read:
             return
 
+        #remove entries with the same ID that are too far away
         if isinstance(self.ble_read[0], (list, tuple)) and len(self.ble_read[0]) > 2:
-            print("true")
             latest_distance = self.ble_read[-1][1]
             latest_id = self.ble_read[-1][0]
-
-            print("latest_distance: ", latest_distance)
-            print("latest_id: ", latest_id)
 
             if latest_distance < self.threshold:
                 print("Removing entries with the same ID that are too far away.")
@@ -101,6 +97,7 @@ class Game:
         if not self.ble_read:
             return
 
+        #main logic, if the ID is the same and the time difference is greater than 3 seconds, add a count
         if isinstance(self.ble_read[0], (list, tuple)) and len(self.ble_read[0]) > 2:
             latest_id = self.ble_read[-1][0]
             latest_time = self.ble_read[-1][2]
@@ -122,6 +119,7 @@ class Game:
                 print(f"We have been zombified by {i + 1}. We are now a zombie.")
                 self.role = "Zombie"
                 self.id = i + 1
+                #write to another document to keep track of the ID
                 with open("id.txt", "w") as f:
                     f.write(str(self.id))
                 return True
