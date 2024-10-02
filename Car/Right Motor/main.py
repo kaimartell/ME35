@@ -1,11 +1,12 @@
-#main.py
+#main.py for second pico - right motor
 import asyncio
-import time
+import machine
 import network
-from steering import Steering
-from motor import Motor
+import time
 from mqtt import MQTTClient
+from motor import Motor
 
+# Wifi connection
 def setup_wifi(SSID, password):
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -18,6 +19,7 @@ def setup_wifi(SSID, password):
     print('wifi connected') 
     return wlan.ifconfig()
 
+
 async def setup_drive(topic):
     mqtt_broker = 'broker.hivemq.com' 
     port = 1883
@@ -28,46 +30,44 @@ async def setup_drive(topic):
         print('Received: Topic: %s, Message: %s' % (topic, msg))
         if topic.decode() == topic_sub:
             recent_msg = msg.decode()
-            if recent_msg == 'left':
-                print("left")
-                stepper.left()
-            elif recent_msg == 'right':
-                print("right")
-                stepper.right() 
-            elif recent_msg == 'start':
+            if recent_msg == 'start':
                 print("start")
-                left_motor.forward()
+                right_motor.forward()
             elif recent_msg == 'stop':
                 print("stop")
-                left_motor.stop()
+                right_motor.stop()
     
-    client = MQTTClient('Kai', mqtt_broker , port, keepalive=0)
+    client = MQTTClient('alsoKai', mqtt_broker , port, keepalive=0)
     client.connect()
     print('Connected to %s MQTT broker' % (mqtt_broker))
     client.set_callback(callback)         
     print("callback set")
     client.subscribe(topic_sub.encode()) 
     print("subscribed")
+    blink()
+    
     
     while True:
         client.check_msg()
         await asyncio.sleep(0.01)
-
-#setup
-recent_msg = ""
-setup_wifi('Tufts_Robot', '') 
-stepper = Steering(6, 7, 8, 9)
-left_motor = Motor()
+        
+def blink():
+    led = machine.Pin('GPIO1', machine.Pin.OUT)
+    for i in range(5):
+        led.on()
+        time.sleep(0.5)
+        led.off()
+        time.sleep(0.5)
+    led.on()
+        
+setup_wifi('Tufts_Robot', '')
+right_motor = Motor()
 
 async def main():
-    
-    asyncio.create_task(setup_drive('drive'))
+    asyncio.create_task(setup_drive('kai'))
     
     while True:
-        await asyncio.sleep(1)
-    
-    
+        await asyncio.sleep(0.01)
+
+
 asyncio.run(main())
-    
-    
-    
