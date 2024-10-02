@@ -28,20 +28,21 @@ class Steering:
         ]
         
     def left(self, num_steps):
-        for i in range(int(num_steps)):
-            print("num_steps: ", num_steps)
+        print("left")
+        for i in range(num_steps):
             for step in self.left_steps:
                 for i in range(4):
                     self.pins[i].value(step[i])
-                time.sleep(0.01)
+                time.sleep(0.1)
         
         
     def right(self, num_steps):
-        for i in range(int(num_steps)):
+        print("right")
+        for i in range(num_steps):
             for step in self.right_steps: 
                 for i in range(4):
                     self.pins[i].value(step[i])
-                time.sleep(0.01)
+                time.sleep(0.1)
             
     
             
