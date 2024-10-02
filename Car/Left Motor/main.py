@@ -19,28 +19,33 @@ def setup_wifi(SSID, password):
     print('wifi connected') 
     return wlan.ifconfig()
 
-async def setup_drive(topic):
-    mqtt_broker = 'broker.hivemq.com' 
-    port = 1883
-    topic_sub = f'ME35-24/{topic}'
-    
-    def callback(topic, msg):
-        recent_msg = ""
-        print('Received: Topic: %s, Message: %s' % (topic, msg))
-        if topic.decode() == topic_sub:
-            recent_msg = msg.decode()
-            if recent_msg == 'left':
-                print("left")
-                stepper.left()
-            elif recent_msg == 'right':
-                print("right")
-                stepper.right() 
-            elif recent_msg == 'start':
+def callback(topic, msg):
+    recent_msg = ""
+    print('Received: Topic: %s, Message: %s' % (topic, msg))
+    if topic.decode() == 'ME35-24/kai':
+        recent_msg = msg.decode()
+        try:
+            recent_msg_float = float(recent_msg)
+            if recent_msg_float > 90:
+                if (recent_msg_float - 90) / 10 > 1:
+                    print("right")
+                    stepper.right((recent_msg_float - 90))
+            elif recent_msg_float < 90:
+                if (90 - recent_msg_float) / 10 > 1:
+                    print("left")
+                    stepper.left((90 - recent_msg_float))
+        except ValueError:
+            if recent_msg == 'start':
                 print("start")
                 left_motor.forward()
             elif recent_msg == 'stop':
                 print("stop")
                 left_motor.stop()
+
+async def setup_drive(topic):
+    mqtt_broker = 'broker.hivemq.com' 
+    port = 1883
+    topic_sub = f'ME35-24/{topic}'
     
     client = MQTTClient('Kai', mqtt_broker , port, keepalive=0)
     client.connect()
@@ -49,7 +54,7 @@ async def setup_drive(topic):
     print("callback set")
     client.subscribe(topic_sub.encode()) 
     print("subscribed")
-    blink()
+    #blink()
     
     while True:
         client.check_msg()
@@ -75,7 +80,7 @@ async def main():
     asyncio.create_task(setup_drive('kai'))
     
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.01)
     
     
 asyncio.run(main())

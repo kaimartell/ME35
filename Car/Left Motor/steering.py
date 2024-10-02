@@ -27,33 +27,23 @@ class Steering:
             [1, 0, 0, 0]
         ]
         
-    def left(self):
-        if self.counter == self.left_hard_limit:
-            return
-        else:
+    def left(self, degree):
+        num_steps = int(degree/10)
+        for i in range(int(num_steps)):
             for step in self.left_steps:
                 for i in range(4):
                     self.pins[i].value(step[i])
                 time.sleep(0.01)
-            self.counter -= 1
-            
         
         
-    def right(self):
-        if self.counter == self.right_hard_limit:
-            return
-        else: 
+    def right(self, degree):
+        num_steps = int(degree/10)
+        for i in range(int(num_steps)):
             for step in self.right_steps: 
                 for i in range(4):
                     self.pins[i].value(step[i])
                 time.sleep(0.01)
-            self.counter += 1
             
-        if self.counter == 0:
-            for step in self.left_steps:
-                for i in range(4):
-                    self.pins[i].value(step[i])
-                time.sleep(0.01)
     
             
 
