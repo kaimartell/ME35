@@ -21,19 +21,25 @@ def setup_wifi(SSID, password):
 
 def callback(topic, msg):
     recent_msg = ""
-    print('Received: Topic: %s, Message: %s' % (topic, msg))
+    center = 90
+    global new_zero
+    #print('Received: Topic: %s, Message: %s' % (topic, msg))
     if topic.decode() == 'ME35-24/kai':
         recent_msg = msg.decode()
+        print("new_zero: ", new_zero)
+        print("recent_msg: ", recent_msg)   
         try:
             recent_msg_float = float(recent_msg)
-            if recent_msg_float > 90:
-                if (recent_msg_float - 90) / 10 > 1:
+            if recent_msg_float - new_zero > 10:
+                if (recent_msg_float - center) / 10 > 1:
                     print("right")
-                    stepper.right((recent_msg_float - 90))
-            elif recent_msg_float < 90:
+                    stepper.right(recent_msg_float - 90 / 10)
+                new_zero = recent_msg_float
+            elif recent_msg_float - new_zero < -10:
                 if (90 - recent_msg_float) / 10 > 1:
                     print("left")
-                    stepper.left((90 - recent_msg_float))
+                    stepper.left(90 - recent_msg_float / 10)
+                new_zero = recent_msg_float
         except ValueError:
             if recent_msg == 'start':
                 print("start")
@@ -71,9 +77,10 @@ def blink():
 
 #setup
 recent_msg = ""
-setup_wifi('Tufts_Robot', '') 
+setup_wifi('Wren 540', 'catholicallgirlsschool') 
 stepper = Steering(6, 7, 8, 9)
 left_motor = Motor()
+new_zero = 0
 
 async def main():
     
