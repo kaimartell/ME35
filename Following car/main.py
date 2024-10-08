@@ -3,8 +3,8 @@ import time
 import math
 import machine
 import bluetooth
-from ble_advertising import advertising_payload
 from micropython import const
+import struct
 
 # Constants for BLE events
 _IRQ_CENTRAL_CONNECT = const(1)
@@ -26,7 +26,8 @@ class BLEMotor:
         self._ble = ble
         self._ble.active(True)
         self._ble.irq(self._irq)
-        ((self._handle,),) = self._ble.gatts_register_services((_MOTOR_SERVICE,))
+        handles = self._ble.gatts_register_services((_MOTOR_SERVICE,))
+        self._handle = handles[0][0]  # Correct way to get the first handle
         self._connections = set()
         self._payload = advertising_payload(name=name, services=[_SERVICE_UUID])
         self._advertise()
@@ -46,10 +47,49 @@ class BLEMotor:
         self._ble.gap_advertise(interval_us, adv_data=self._payload)
 
     def notify_speed(self, speed):
+        print(f"Notify speed called with speed: {speed}")  # Debug line
         for conn_handle in self._connections:
-            self._ble.gatts_notify(conn_handle, self._handle, str(speed))
+            try:
+                msg = str(speed)
+                #print(f"Attempting to notify speed: {speed_str}")  # Debug line before notifying
+                self._ble.gatts_notify(conn_handle, self._handle, msg)
+            except Exception as e:
+                print(f"Error notifying speed: {e}")  # Catch and print errors
+   
+    
+def advertising_payload(limited_disc=False, br_edr=False, name=None, services=None):
+    payload = bytearray()
 
+    def _append(adv_type, value):
+        nonlocal payload
+        payload += bytes((len(value) + 1, adv_type)) + value
 
+    # Flags
+    flags = (0x02 if limited_disc else 0x06) + (0x00 if br_edr else 0x04)
+    _append(0x01, struct.pack("B", flags))
+
+    # Name
+    if name:
+        _append(0x09, name.encode())
+
+    # Services (UUIDs)
+    if services:
+        for uuid in services:
+            if isinstance(uuid, bluetooth.UUID):
+                uuid_bytes = bytes(uuid)
+                if len(uuid_bytes) == 2:  # 16-bit UUID
+                    _append(0x03, uuid_bytes)
+                elif len(uuid_bytes) == 16:  # 128-bit UUID
+                    _append(0x07, uuid_bytes)
+
+    return payload
+    
+   
+
+    
+    
+def degrees(radians):
+    return (180 * radians) / math.pi
 
 sensor.reset()  # Reset and initialize the sensor.
 sensor.set_pixformat(sensor.RGB565)  # Set pixel format to RGB565 (or GRAYSCALE)
@@ -62,51 +102,43 @@ k_d = 0.05
 error = 0
 prev = 0
 
+f_x = (2.8 / 3.984) * 160  # find_apriltags defaults to this if not set
+f_y = (2.8 / 2.952) * 120  # find_apriltags defaults to this if not set
+c_x = 160 * 0.5  # find_apriltags defaults to this if not set (the image.w * 0.5)
+c_y = 120 * 0.5  # find_apriltags defaults to this if not set (the image.h * 0.5)
+
 ble = bluetooth.BLE()
 motor_ble = BLEMotor(ble)
 
-left_motor = machine.PWM(machine.Pin(9))
-right_motor = machine.PWM(machine.Pin(10))
-for motor in [left_motor, right_motor]:
-    motor.freq(50)
 
-
-def motor_speed(speed, direction):
-
-    if direction == 'left':
-        left_motor.duty_u16(0)
-        right_motor.duty_u16(speed)
-    elif direction == 'right':
-        left_motor.duty_u16(speed)
-        right_motor.duty_u16(0)
-    elif direction == 'straight':
-        left_motor.duty_u16(100)
-        right_motor.duty_u16(100)
-    
 
 while True:
+    #print("in first while")
     clock.tick() 
     img = sensor.snapshot()
 
     currentTag = ''
         
     while True:
-        
+        #print("in second while")
         clock.tick()
         img = sensor.snapshot()
-        
-        for tag in img.find_apriltags():
-            img.draw_rectangle(tag.rect(), color=(255, 0, 0))
-            img.draw_cross(tag.cx(), tag.cy(), color=(0, 255, 0))
-
-            tag_id = tag.id()
-            tag_name = tag.family() 
-            tag_rotation = (180 * tag.rotation()) / math.pi
-            
-            currentTag = f'{tag_id}, {tag_name}'
+    
+        # Check the img object
+        #print(f"Image object: {img}")  
+        #print(f"find_apriltags callable: {callable(img.find_apriltags)}")  # Check if it's callable
+    
+        for tag in img.find_apriltags(fx=f_x, fy=f_y, cx=c_x, cy=c_y):
+            #print(f"Found tag: {tag}")  # Inspect the tag object
+            #print(f"tag.rect type: {type(tag.rect)}")  # Debug statement
+            #print(f"tag.cx type: {type(tag.cx)}")  # Debug statement
+            img.draw_rectangle(tag.rect, color=(255, 0, 0))  # Access tuple directly
+            img.draw_cross(tag.cx, tag.cy, color=(0, 255, 0))  # Access integers directly
     
             prev = error
-            error = tag.cx() - (img.width() // 2)
+            error = tag.cx - (img.width() // 2)
+    
+            speed = int(k_p * error + k_d * (error - prev))
             
             if error > 0:
                 direction = 'left'
@@ -115,6 +147,6 @@ while True:
             elif error == 0:
                 direction = 'straight'
             
-            speed = abs(int(k_p * error + k_d * (error - prev)))
-            
-            motor_ble.notify_speed(f"S:{speed}, D:{direction}")
+            print("Notified")
+            #motor_ble.notify_speed("Test")
+            motor_ble.notify_speed(speed)  # Test with actual speed and direction values

@@ -55,22 +55,24 @@ class BLECentral:
         elif event == _IRQ_GATTC_NOTIFY:
             #print("new notif")
             conn_handle, value_handle, notify_data = data
-            print("data: ", value_handle)
-            print("motor_speed_handle: ", self._motor_speed_handle)
+            #print("data: ", value_handle)
+            #print("motor_speed_handle: ", self._motor_speed_handle)
             #print("conn_handle: ", conn_handle)
             #print("notify_data: ", notify_data)
             decoded_data = bytes(notify_data).decode()
             #print("decoded_data: ", decoded_data)
-            if value_handle == self._motor_speed_handle:
+            if value_handle == _IRQ_GATTC_SERVICE_DISCOVER:
                 # Store the most recent notification
                 self._last_notification = decoded_data
-                print(f"Motor Speed: {self._last_notification}")
+                #print(f"Motor Speed: {self._last_notification}")
         elif event == _IRQ_GATTC_WRITE_DONE:
             conn_handle, value_handle, status = data
             print("Write complete")
         elif event == _IRQ_GATTC_SERVICE_DISCOVER:
-            # Call this method after discovering services
-            self._ble.gattc_discover_characteristics(self._conn_handle)
+            conn_handle, char_handle, char_uuid = data
+            if char_uuid == _MOTOR_SPEED_CHAR_UUID:
+                print(f"Found Motor Speed Characteristic: {char_handle}")
+                self.subscribe_to_motor_speed(conn_handle, char_handle)
 
 
     def discover_characteristics(self, conn_handle):
@@ -102,13 +104,6 @@ class BLECentral:
             self._motor_speed_handle = char_handle
             self._ble.gattc_write(conn_handle, char_handle, b'\x01\x00', 1)  # Enable notifications
 
-    def print_last_notification(self):
-        # Print the most recent notification
-        if self._last_notification:
-            print(f"Last Motor Speed Notification: {self._last_notification}")
-        else:
-            print("No notifications received yet.")
-
 def motor_speed(speed, direction):
     if direction == 'left':
         print("in left")
@@ -127,9 +122,6 @@ def motor_speed(speed, direction):
 central = BLECentral()
 central.start_scan()
 
-#asyncio.create_task(central._irq())
-
 while True:
-    # No need to call a process method; just sleep and let IRQ handle events
     time.sleep(0.5)
-    central.print_last_notification()  # Print the last notification if available
+    print("Last Notification: ", central._last_notification)
