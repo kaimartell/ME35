@@ -2,6 +2,54 @@ import sensor
 import time
 import math
 import machine
+import bluetooth
+from ble_advertising import advertising_payload
+from micropython import const
+
+# Constants for BLE events
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
+_IRQ_GATTS_WRITE = const(3)
+
+_FLAG_READ = const(0x0002)
+_FLAG_WRITE = const(0x0008)
+_FLAG_NOTIFY = const(0x0010)
+_FLAG_INDICATE = const(0x0020)
+
+# BLE Service and Characteristic UUIDs
+_SERVICE_UUID = bluetooth.UUID(0x1523)
+_MOTOR_SPEED_CHAR_UUID = (bluetooth.UUID(0x1525), _FLAG_NOTIFY | _FLAG_READ)
+_MOTOR_SERVICE = (_SERVICE_UUID, (_MOTOR_SPEED_CHAR_UUID,))
+
+class BLEMotor:
+    def __init__(self, ble, name="MotorController"):
+        self._ble = ble
+        self._ble.active(True)
+        self._ble.irq(self._irq)
+        ((self._handle,),) = self._ble.gatts_register_services((_MOTOR_SERVICE,))
+        self._connections = set()
+        self._payload = advertising_payload(name=name, services=[_SERVICE_UUID])
+        self._advertise()
+
+    def _irq(self, event, data):
+        if event == _IRQ_CENTRAL_CONNECT:
+            conn_handle, _, _ = data
+            self._connections.add(conn_handle)
+        elif event == _IRQ_CENTRAL_DISCONNECT:
+            conn_handle, _, _ = data
+            self._connections.remove(conn_handle)
+            self._advertise()
+        elif event == _IRQ_GATTS_WRITE:
+            pass  # Handle any incoming writes if needed
+
+    def _advertise(self, interval_us=500000):
+        self._ble.gap_advertise(interval_us, adv_data=self._payload)
+
+    def notify_speed(self, speed):
+        for conn_handle in self._connections:
+            self._ble.gatts_notify(conn_handle, self._handle, str(speed))
+
+
 
 sensor.reset()  # Reset and initialize the sensor.
 sensor.set_pixformat(sensor.RGB565)  # Set pixel format to RGB565 (or GRAYSCALE)
@@ -14,8 +62,11 @@ k_d = 0.05
 error = 0
 prev = 0
 
-left_motor = machine.PWM(machine.PIN(9))
-right_motor = machine.PWM(machine.PIN(10))
+ble = bluetooth.BLE()
+motor_ble = BLEMotor(ble)
+
+left_motor = machine.PWM(machine.Pin(9))
+right_motor = machine.PWM(machine.Pin(10))
 for motor in [left_motor, right_motor]:
     motor.freq(50)
 
@@ -64,5 +115,6 @@ while True:
             elif error == 0:
                 direction = 'straight'
             
-            motor_speed(abs(int(k_p * error + k_d * (error - prev))), direction)
-    
+            speed = abs(int(k_p * error + k_d * (error - prev)))
+            
+            motor_ble.notify_speed(f"S:{speed}, D:{direction}")
