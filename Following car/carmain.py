@@ -125,3 +125,10 @@ central.start_scan()
 while True:
     time.sleep(0.5)
     print("Last Notification: ", central._last_notification)
+    #_last_notification returns a string with the format "speed distance"
+    #split the string to get the speed and direction
+    if central._last_notification:
+        speed, distance = central._last_notification.split()
+        
+    
+

@@ -5,6 +5,7 @@ import machine
 import bluetooth
 from micropython import const
 import struct
+from machine import LED
 
 # Constants for BLE events
 _IRQ_CENTRAL_CONNECT = const(1)
@@ -27,7 +28,7 @@ class BLEMotor:
         self._ble.active(True)
         self._ble.irq(self._irq)
         handles = self._ble.gatts_register_services((_MOTOR_SERVICE,))
-        self._handle = handles[0][0]  # Correct way to get the first handle
+        self._handle = handles[0][0]
         self._connections = set()
         self._payload = advertising_payload(name=name, services=[_SERVICE_UUID])
         self._advertise()
@@ -41,22 +42,21 @@ class BLEMotor:
             self._connections.remove(conn_handle)
             self._advertise()
         elif event == _IRQ_GATTS_WRITE:
-            pass  # Handle any incoming writes if needed
+            pass
 
     def _advertise(self, interval_us=500000):
         self._ble.gap_advertise(interval_us, adv_data=self._payload)
 
-    def notify_speed(self, speed):
-        print(f"Notify speed called with speed: {speed}")  # Debug line
+    def notify(self, direction, distance):
         for conn_handle in self._connections:
             try:
-                msg = str(speed)
-                #print(f"Attempting to notify speed: {speed_str}")  # Debug line before notifying
+                msg = str(direction) + " " + str(distance)
+                print("notifying with message: ", msg)
                 self._ble.gatts_notify(conn_handle, self._handle, msg)
             except Exception as e:
-                print(f"Error notifying speed: {e}")  # Catch and print errors
-   
-    
+                print(f"Error notifying: {e}")
+
+
 def advertising_payload(limited_disc=False, br_edr=False, name=None, services=None):
     payload = bytearray()
 
@@ -83,11 +83,11 @@ def advertising_payload(limited_disc=False, br_edr=False, name=None, services=No
                     _append(0x07, uuid_bytes)
 
     return payload
-    
-   
 
-    
-    
+
+
+
+
 def degrees(radians):
     return (180 * radians) / math.pi
 
@@ -97,56 +97,52 @@ sensor.set_framesize(sensor.QQVGA)  # Set frame size to QQVGA (160x120)
 sensor.skip_frames(time=2000)  # Wait for settings take effect.
 clock = time.clock()  # Create a clock object to track the FPS.
 
+
+
+#Initialize Variables and Classes
 k_p = 0.1
 k_d = 0.05
 error = 0
 prev = 0
 
-f_x = (2.8 / 3.984) * 160  # find_apriltags defaults to this if not set
-f_y = (2.8 / 2.952) * 120  # find_apriltags defaults to this if not set
-c_x = 160 * 0.5  # find_apriltags defaults to this if not set (the image.w * 0.5)
-c_y = 120 * 0.5  # find_apriltags defaults to this if not set (the image.h * 0.5)
+f_x = (2.8 / 3.984) * 160
+f_y = (2.8 / 2.952) * 120
+c_x = 160 * 0.5
+c_y = 120 * 0.5
 
 ble = bluetooth.BLE()
 motor_ble = BLEMotor(ble)
 
-
+led = LED("LED_BLUE")
 
 while True:
-    #print("in first while")
-    clock.tick() 
+    clock.tick()
     img = sensor.snapshot()
 
     currentTag = ''
-        
+
+    i = 0
+
+    while i < 5:
+        led.on()
+        time.sleep(0.5)
+        led.off()
+        time.sleep(0.5)
+        i += 1
+
     while True:
-        #print("in second while")
         clock.tick()
         img = sensor.snapshot()
-    
-        # Check the img object
-        #print(f"Image object: {img}")  
-        #print(f"find_apriltags callable: {callable(img.find_apriltags)}")  # Check if it's callable
-    
+
         for tag in img.find_apriltags(fx=f_x, fy=f_y, cx=c_x, cy=c_y):
-            #print(f"Found tag: {tag}")  # Inspect the tag object
-            #print(f"tag.rect type: {type(tag.rect)}")  # Debug statement
-            #print(f"tag.cx type: {type(tag.cx)}")  # Debug statement
-            img.draw_rectangle(tag.rect, color=(255, 0, 0))  # Access tuple directly
-            img.draw_cross(tag.cx, tag.cy, color=(0, 255, 0))  # Access integers directly
-    
+            img.draw_rectangle(tag.rect, color=(255, 0, 0))
+            img.draw_cross(tag.cx, tag.cy, color=(0, 255, 0))
+
             prev = error
             error = tag.cx - (img.width() // 2)
-    
-            speed = int(k_p * error + k_d * (error - prev))
+
+            direction = int(k_p * error + k_d * (error - prev))
+
+            distance = abs(int(tag.z_translation))
             
-            if error > 0:
-                direction = 'left'
-            elif error < 0:
-                direction = 'right'
-            elif error == 0:
-                direction = 'straight'
-            
-            print("Notified")
-            #motor_ble.notify_speed("Test")
-            motor_ble.notify_speed(speed)  # Test with actual speed and direction values
+            motor_ble.notify(direction, distance)
