@@ -1,0 +1,44 @@
+from asyncio import create_task
+import time
+from BLE_CEEO import Yell
+import machine
+import asyncio
+
+# button list
+button = []
+for i in range(4):
+    print(i)
+    button.append(machine.Pin(6 + i, machine.Pin.IN))
+
+# MIDI message types
+NoteOn = 0x90
+NoteOff = 0x80
+
+p = Yell('kmart', verbose=True, type='midi')
+p.connect_up()
+
+channel = 0  # MIDI channel 0
+velocity = 60  # Max velocity
+
+print("here1")
+
+async def send_midi_message(command, note, velocity):
+    """Send a basic MIDI message."""
+    cmd = command | (channel & 0x0F)
+    payload = bytes([cmd, note & 0x7F, velocity & 0x7F])
+    p.send(payload)
+
+print('here2')
+
+async def run():
+    while True:
+        for i, btn in enumerate(button):
+            if btn.value() == 1:  # Assuming 1 means pressed
+                print(f"Button {i} pressed")
+                await send_midi_message(NoteOn, 60 + i, velocity)
+            else:
+                await send_midi_message(NoteOff, 60 + i, velocity)
+        await asyncio.sleep(0.1)  # Adjust the delay as needed
+
+# Start the asyncio event loop
+asyncio.run(run())
