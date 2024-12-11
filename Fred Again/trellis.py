@@ -35,18 +35,6 @@ if not initialize_trellis():
     print("Failed to initialize Trellis after multiple attempts.")
     raise SystemExit
 
-# Light up all the LEDs in order
-for i in range(numKeys):
-    trellis.set_led(i)
-    trellis.write_display()
-    time.sleep(0.05)
-
-# Turn them off
-for i in range(numKeys):
-    trellis.clr_led(i)
-    trellis.write_display()
-    time.sleep(0.05)
-
 # Main loop
 while True:
     time.sleep(0.03)  # 30ms delay
@@ -75,6 +63,6 @@ while True:
     except OSError as e:
         if e.args[0] == 110:  # ETIMEDOUT
             print("I2C timeout occurred, retrying...")
-            time.sleep(0.1)  # Short delay before retrying
+            time.sleep(0.1)  
         else:
-            raise  # Re-raise the exception if it's not a timeout
+            raise  
